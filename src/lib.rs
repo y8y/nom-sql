@@ -11,11 +11,11 @@ extern crate pretty_assertions;
 pub use self::arithmetic::{ArithmeticBase, ArithmeticExpression, ArithmeticOperator};
 pub use self::case::{CaseWhenExpression, ColumnOrLiteral};
 pub use self::column::{
-    Column, ColumnConstraint, ColumnSpecification, FunctionArguments, FunctionExpression,
+  Column, ColumnConstraint, ColumnSpecification, FunctionArguments, FunctionExpression,
 };
 pub use self::common::{
-    FieldDefinitionExpression, FieldValueExpression, Literal, LiteralExpression, Operator, Real,
-    SqlType, TableKey,
+  FieldDefinitionExpression, FieldValueExpression, Literal, LiteralExpression, Operator, Real,
+  SqlType, TableKey,
 };
 pub use self::compound_select::{CompoundSelectOperator, CompoundSelectStatement};
 pub use self::condition::{ConditionBase, ConditionExpression, ConditionTree};
