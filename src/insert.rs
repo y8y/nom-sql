@@ -47,7 +47,7 @@ impl fmt::Display for InsertStatement {
         .map(|datas| format!(
           "({})",
           datas
-            .into_iter()
+            .iter()
             .map(|l| l.to_string())
             .collect::<Vec<_>>()
             .join(", ")

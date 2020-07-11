@@ -116,8 +116,8 @@ pub fn arithmetic_operator(i: &[u8]) -> IResult<&[u8], ArithmeticOperator> {
 // Base case for nested arithmetic expressions: column name or literal.
 pub fn arithmetic_base(i: &[u8]) -> IResult<&[u8], ArithmeticBase> {
   alt((
-    map(integer_literal, |il| ArithmeticBase::Scalar(il)),
-    map(column_identifier_no_alias, |ci| ArithmeticBase::Column(ci)),
+    map(integer_literal, ArithmeticBase::Scalar),
+    map(column_identifier_no_alias, ArithmeticBase::Column),
   ))(i)
 }
 

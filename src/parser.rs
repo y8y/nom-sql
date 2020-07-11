@@ -19,7 +19,7 @@ pub enum SqlQuery {
   CreateView(CreateViewStatement),
   Insert(InsertStatement),
   CompoundSelect(CompoundSelectStatement),
-  Select(SelectStatement),
+  Select(Box<SelectStatement>),
   Delete(DeleteStatement),
   DropTable(DropTableStatement),
   Update(UpdateStatement),
@@ -44,15 +44,15 @@ impl fmt::Display for SqlQuery {
 
 pub fn sql_query(i: &[u8]) -> IResult<&[u8], SqlQuery> {
   alt((
-    map(creation, |c| SqlQuery::CreateTable(c)),
-    map(insertion, |i| SqlQuery::Insert(i)),
-    map(compound_selection, |cs| SqlQuery::CompoundSelect(cs)),
-    map(selection, |s| SqlQuery::Select(s)),
-    map(deletion, |d| SqlQuery::Delete(d)),
-    map(drop_table, |dt| SqlQuery::DropTable(dt)),
-    map(updating, |u| SqlQuery::Update(u)),
-    map(set, |s| SqlQuery::Set(s)),
-    map(view_creation, |vc| SqlQuery::CreateView(vc)),
+    map(creation, SqlQuery::CreateTable),
+    map(insertion, SqlQuery::Insert),
+    map(compound_selection, SqlQuery::CompoundSelect),
+    map(selection, |s| SqlQuery::Select(Box::new(s))),
+    map(deletion, SqlQuery::Delete),
+    map(drop_table, SqlQuery::DropTable),
+    map(updating, SqlQuery::Update),
+    map(set, SqlQuery::Set),
+    map(view_creation, SqlQuery::CreateView),
   ))(i)
 }
 

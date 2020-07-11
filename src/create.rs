@@ -60,7 +60,7 @@ impl fmt::Display for CreateTableStatement {
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub enum SelectSpecification {
   Compound(CompoundSelectStatement),
-  Simple(SelectStatement),
+  Simple(Box<SelectStatement>),
 }
 
 impl fmt::Display for SelectSpecification {
@@ -102,6 +102,7 @@ impl fmt::Display for CreateViewStatement {
 }
 
 // MySQL grammar element for index column definition (§13.1.18, index_col_name)
+#[allow(clippy::type_complexity)]
 pub fn index_col_name(i: &[u8]) -> IResult<&[u8], (Column, Option<u16>, Option<OrderType>)> {
   let (remaining_input, (column, len_u8, order)) = tuple((
     terminated(column_identifier_no_alias, multispace0),
@@ -377,6 +378,7 @@ pub fn creation(i: &[u8]) -> IResult<&[u8], CreateTableStatement> {
     .collect();
 
   // and to keys:
+  #[allow(clippy::bind_instead_of_map)]
   let keys = keys_list.and_then(|ks| {
     Some(
       ks.into_iter()
@@ -423,8 +425,8 @@ pub fn view_creation(i: &[u8]) -> IResult<&[u8], CreateViewStatement> {
     tag_no_case("as"),
     multispace1,
     alt((
-      map(compound_selection, |s| SelectSpecification::Compound(s)),
-      map(nested_selection, |s| SelectSpecification::Simple(s)),
+      map(compound_selection, SelectSpecification::Compound),
+      map(nested_selection, |s| SelectSpecification::Simple(Box::new(s))),
     )),
     statement_terminator,
   ))(i)?;
@@ -740,7 +742,7 @@ mod tests {
     assert_eq!(res.unwrap().1, CreateViewStatement {
       name:       String::from("v"),
       fields:     vec![],
-      definition: Box::new(SelectSpecification::Simple(SelectStatement {
+      definition: Box::new(SelectSpecification::Simple(Box::new(SelectStatement {
         tables: vec![Table::from("users")],
         fields: vec![FieldDefinitionExpression::All],
         where_clause: Some(ConditionExpression::ComparisonOp(ConditionTree {
@@ -753,7 +755,7 @@ mod tests {
           operator: Operator::Equal,
         })),
         ..Default::default()
-      })),
+      }))),
     });
   }
 

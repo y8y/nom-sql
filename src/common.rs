@@ -147,13 +147,10 @@ impl ToString for Literal {
       Literal::UnsignedInteger(ref i) => format!("{}", i),
       Literal::FixedPoint(ref f) => format!("{}.{}", f.integral, f.fractional),
       Literal::String(ref s) => format!("'{}'", s.replace('\'', "''")),
-      Literal::Blob(ref bv) => format!(
-        "{}",
-        bv.iter()
+      Literal::Blob(ref bv) => bv.iter()
           .map(|v| format!("{:x}", v))
           .collect::<Vec<String>>()
-          .join(" ")
-      ),
+          .join(" "),
       Literal::CurrentTime => "CURRENT_TIME".to_string(),
       Literal::CurrentDate => "CURRENT_DATE".to_string(),
       Literal::CurrentTimestamp => "CURRENT_TIMESTAMP".to_string(),
@@ -337,7 +334,7 @@ impl Display for FieldValueExpression {
 
 #[inline]
 pub fn is_sql_identifier(chr: u8) -> bool {
-  is_alphanumeric(chr) || chr == '_' as u8 || chr == '@' as u8
+  is_alphanumeric(chr) || chr == b'_' || chr == b'@'
 }
 
 #[inline]
@@ -529,7 +526,7 @@ fn type_identifier_first_half(i: &[u8]) -> IResult<&[u8], SqlType> {
         ),
         multispace0,
       ),
-      |v| SqlType::Enum(v),
+      SqlType::Enum,
     ),
     map(
       tuple((
@@ -592,8 +589,8 @@ pub fn type_identifier(i: &[u8]) -> IResult<&[u8], SqlType> {
 pub fn function_arguments(i: &[u8]) -> IResult<&[u8], (FunctionArguments, bool)> {
   let distinct_parser = opt(tuple((tag_no_case("distinct"), multispace1)));
   let args_parser = alt((
-    map(case_when_column, |cw| FunctionArguments::Conditional(cw)),
-    map(column_identifier_no_alias, |c| FunctionArguments::Column(c)),
+    map(case_when_column, FunctionArguments::Conditional),
+    map(column_identifier_no_alias, FunctionArguments::Column),
   ));
   let (remaining_input, (distinct, args)) = tuple((distinct_parser, args_parser))(i)?;
   Ok((remaining_input, (args, distinct.is_some())))
@@ -632,10 +629,10 @@ pub fn column_function(i: &[u8]) -> IResult<&[u8], FunctionExpression> {
       FunctionExpression::Avg(args.0.clone(), args.1)
     }),
     map(preceded(tag_no_case("max"), delim_fx_args), |args| {
-      FunctionExpression::Max(args.0.clone())
+      FunctionExpression::Max(args.0)
     }),
     map(preceded(tag_no_case("min"), delim_fx_args), |args| {
-      FunctionExpression::Min(args.0.clone())
+      FunctionExpression::Min(args.0)
     }),
     map(
       preceded(tag_no_case("group_concat"), delim_group_concat_fx),
@@ -774,7 +771,7 @@ fn field_value_expr(i: &[u8]) -> IResult<&[u8], FieldValueExpression> {
   alt((
     map(literal, |l| {
       FieldValueExpression::Literal(LiteralExpression {
-        value: l.into(),
+        value: l,
         alias: None,
       })
     }),
@@ -821,7 +818,7 @@ pub fn field_definition_expr(i: &[u8]) -> IResult<&[u8], Vec<FieldDefinitionExpr
     alt((
       map(tag("*"), |_| FieldDefinitionExpression::All),
       map(terminated(table_reference, tag(".*")), |t| {
-        FieldDefinitionExpression::AllInTable(t.name.clone())
+        FieldDefinitionExpression::AllInTable(t.name)
       }),
       map(arithmetic_expression, |expr| {
         FieldDefinitionExpression::Value(FieldValueExpression::Arithmetic(expr))
@@ -829,7 +826,7 @@ pub fn field_definition_expr(i: &[u8]) -> IResult<&[u8], Vec<FieldDefinitionExpr
       map(literal_expression, |lit| {
         FieldDefinitionExpression::Value(FieldValueExpression::Literal(lit))
       }),
-      map(column_identifier, |col| FieldDefinitionExpression::Col(col)),
+      map(column_identifier, FieldDefinitionExpression::Col),
     )),
     opt(ws_sep_comma),
   ))(i)
@@ -861,7 +858,7 @@ pub fn float_literal(i: &[u8]) -> IResult<&[u8], Literal> {
   map(tuple((opt(tag("-")), digit1, tag("."), digit1)), |tup| {
     Literal::FixedPoint(Real {
       integral:   if (tup.0).is_some() {
-        -1 * unpack(tup.1)
+        -unpack(tup.1)
       } else {
         unpack(tup.1)
       },

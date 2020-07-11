@@ -106,7 +106,7 @@ impl fmt::Display for SelectStatement {
         .join(", ")
     )?;
 
-    if self.tables.len() > 0 {
+    if !self.tables.is_empty() {
       write!(f, " FROM ")?;
       write!(
         f,
@@ -249,7 +249,7 @@ fn join_rhs(i: &[u8]) -> IResult<&[u8], JoinRightSide> {
   let nested_join = map(delimited(tag("("), join_clause, tag(")")), |nj| {
     JoinRightSide::NestedJoin(Box::new(nj))
   });
-  let table = map(table_reference, |t| JoinRightSide::Table(t));
+  let table = map(table_reference, JoinRightSide::Table);
   let tables = map(delimited(tag("("), table_list, tag(")")), |tables| {
     JoinRightSide::Tables(tables)
   });
